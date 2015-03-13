@@ -25,6 +25,17 @@
  This example code is in the public domain.
  
  */
+ 
+ /*
+ ** MOSI - pin 11
+ ** MISO - pin 12
+ ** CLK - pin 13
+ ** CS - pin 4
+ */
+char fileName[8];
+#include <SdFat.h>
+SdFat sd;
+SdFile DataFile;
 #include <SoftwareSerial.h>
 
 SoftwareSerial mySerial(9, 8); // RX, TX
@@ -33,23 +44,30 @@ void setup()
 {
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
+  pinMode(10, OUTPUT);
+  digitalWrite(10,HIGH);
+  while(!sd.begin(10, SPI_HALF_SPEED)){}
+  Serial.println("sd initialized");
+  int i = 0;
+  sprintf(fileName, "f%i.txt", i);
+  while(sd.exists(fileName)){
+    i++;
+    sprintf(fileName, "f%i.txt", i);
   }
-
+  DataFile.open(fileName,O_RDWR | O_CREAT | O_AT_END);
 
   Serial.println("Goodnight moon!");
 
   // set the data rate for the SoftwareSerial port
   mySerial.begin(9600);
-  mySerial.println("Hello, world?");
 }
 
 void loop() // run over and over
 {
-  if (mySerial.available())
-    Serial.write(mySerial.read());
-  if (Serial.available())
-    mySerial.write(Serial.read());
+  DataFile.open(fileName,O_RDWR | O_CREAT | O_AT_END);
+  if (mySerial.available()){
+    DataFile.print(millis() + "\n");
+  }
+  DataFile.close();    
 }
 
