@@ -9,7 +9,9 @@
 #define PROM5 B10101010
 #define PROM6 B10101100
 #define D1ADD 0x48
-#define D2ADD 0x00
+#define D2ADD 0x58
+#define ADCREAD 0x00
+#define PRESRESET 0x1E
 
 unsigned int C1;
 unsigned int C2;
@@ -24,6 +26,7 @@ byte mmsb, mlsb;
 void setup(){
   Wire.begin();
   Serial.begin(9600);
+  Serial.println("Calibrating Pressure Sensor");
   calibratePress();
   Serial.println("Calibration Data:");
   Serial.print(C1);
@@ -47,7 +50,7 @@ void loop(){
   Serial.println("Current Pressure is: ");
   Serial.print(readPress());
   Serial.println("mBar");
-  delay(100);
+  delay(1000);
 }
 
 float readPress(){
@@ -55,38 +58,52 @@ float readPress(){
   Wire.beginTransmission(pressAddress);
   Wire.write(D1ADD);
   Wire.endTransmission();
-  Wire.requestFrom(pressAddress, 2);
+  delay(10);
+  Wire.beginTransmission(pressAddress);
+  Wire.write(ADCREAD);
+  Wire.endTransmission();
+  Wire.requestFrom(pressAddress, 3);
   while(!Wire.available());
+  delay(7);
   mlsb = Wire.read();
   msb = Wire.read();
   lsb = Wire.read();
-  unsigned long D1 = (mlsb<<8 | msb)<<8 | lsb;
+  unsigned long D1 = mlsb<<16 | msb<<8 | lsb;
   
   //Read D2
   Wire.beginTransmission(pressAddress);
   Wire.write(D2ADD);
   Wire.endTransmission();
-  Wire.requestFrom(pressAddress, 2);
+  delay(10);
+  Wire.beginTransmission(pressAddress);
+  Wire.write(ADCREAD);
+  Wire.endTransmission();
+  Wire.requestFrom(pressAddress, 3);
   while(!Wire.available());
+  delay(7);
   mlsb = Wire.read();
   msb = Wire.read();
   lsb = Wire.read();
-  unsigned long D2 = (mlsb<<8 | msb)<<8 | lsb;
+  unsigned long D2 = mlsb<<16 | msb<<8 | lsb;
   
+  Serial.print("D1:");
+  Serial.print(D1);
+  Serial.print(" D2:");
+  Serial.println(D2);
   //calculate dT
-  long dT = D2 - C5*256;
+  long dT = D2 - (C5 * pow(2, 8));
   
   //calculate actual tempurature
-  long TEMP = 2000 + dT * C6/8388608;
+  long TEMP = 2000 + dT * C6/pow(2, 23);
   
   //Calculate offset
-  int64_t OFF = C2*65536 + (C4*dT)/128;
+  int64_t OFF = C2*pow(2, 16) + (C4*dT)/pow(2,7);
   
   //Calculate sensitivity
-  int64_t SENS = C1*32768 + (C3*dT)/256;
+  int64_t SENS = C1*pow(2,15) + (C3*dT)/pow(2,8);
   
   //Calculate the Pressure (units of 0.1mBar)
-  long P = (D1*SENS/2147483648 - OFF)/32768;
+  int64_t P = (D1*SENS/pow(2,21) - OFF)/pow(2,15);
   //Return a float in units of mBar
   return ((float) P)/10;
 }
@@ -162,7 +179,7 @@ float readTemp(){
   msb = Wire.read();
   lsb = Wire.read();
   int temp = msb<<8 | lsb;  
-  float tempFloat = (float)temp/16.0;
+  float tempFloat = ((float)temp)/16.0*0.0625;
   return tempFloat;
 }
 
