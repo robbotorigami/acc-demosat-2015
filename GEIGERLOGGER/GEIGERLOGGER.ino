@@ -49,12 +49,12 @@ void setup()
   while(!sd.begin(10, SPI_HALF_SPEED)){}
   Serial.println("sd initialized");
   int i = 0;
-  sprintf(fileName, "f%i.txt", i);
+  sprintf(fileName, "f%i.csv", i);
   while(sd.exists(fileName)){
     i++;
-    sprintf(fileName, "f%i.txt", i);
+    sprintf(fileName, "f%i.csv", i);
   }
-  DataFile.open(fileName,O_RDWR | O_CREAT | O_AT_END);
+  DataFile.open(fileName, O_RDWR | O_CREAT | O_AT_END);
 
   Serial.println("Goodnight moon!");
 
@@ -66,7 +66,8 @@ void loop() // run over and over
 {
   DataFile.open(fileName,O_RDWR | O_CREAT | O_AT_END);
   if (mySerial.available()){
-    DataFile.print(millis() + "\n");
+    DataFile.println(millis());
+    mySerial.read();
   }
   DataFile.close();    
 }
