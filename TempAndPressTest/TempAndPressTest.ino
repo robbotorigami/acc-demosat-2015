@@ -1,4 +1,5 @@
 #include<Wire.h>
+#include <MS5803_I2C.h>
 #define tempRegister B00000000
 #define tempAddress B1001000
 #define pressAddress 0x77
@@ -23,33 +24,33 @@ unsigned int C6;
 byte msb, lsb;
 byte mmsb, mlsb;
 
+float temperature_c, temperature_f;
+double pressure_abs, pressure_relative, altitude_delta, pressure_baseline;
+MS5803 sensor(ADDRESS_LOW);
+
+double base_altitude = 1655.0;
+
 void setup(){
   Wire.begin();
   Serial.begin(9600);
   Serial.println("Calibrating Pressure Sensor");
-  calibratePress();
-  Serial.println("Calibration Data:");
-  Serial.print(C1);
-  Serial.print(", ");
-  Serial.print(C2);
-  Serial.print(", ");
-  Serial.print(C3);
-  Serial.print(", ");
-  Serial.print(C4);
-  Serial.print(", ");
-  Serial.print(C5);
-  Serial.print(", ");
-  Serial.print(C6);
-  Serial.println();
+  //Retrieve calibration constants for conversion math.
+  sensor.reset();
+  sensor.begin();
+  
+  pressure_baseline = sensor.getPressure(ADC_4096);
 }
 
 void loop(){
   Serial.print("Current Tempurature is: ");
   Serial.print(readTemp());
   Serial.println("C");
-  Serial.println("Current Pressure is: ");
-  Serial.print(readPress());
+  Serial.print("Current Pressure is: ");
+  pressure_abs = sensor.getPressure(ADC_4096);
+  Serial.print(pressure_abs);
   Serial.println("mBar");
+  Serial.print("Change in Altitude is: ");
+  Serial.println(altitude(pressure_abs, pressure_baseline));
   delay(1000);
 }
 
@@ -181,6 +182,13 @@ float readTemp(){
   int temp = msb<<8 | lsb;  
   float tempFloat = ((float)temp)/16.0*0.0625;
   return tempFloat;
+}
+
+double altitude(double P, double P0)
+// Given a pressure measurement P (mbar) and the pressure at a baseline P0 (mbar),
+// return altitude (meters) above baseline.
+{
+	return(44330.0*(1-pow(P/P0,1/5.255)));
 }
 
 /*
