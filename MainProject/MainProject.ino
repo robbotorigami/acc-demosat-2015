@@ -95,18 +95,20 @@ void setup()
   pinMode(GREENPIN, OUTPUT);
   pinMode(BLUEPIN, OUTPUT);
   
-  displayStatus(POWERON);
-  
-  //Set up the heater
-  pinMode(HEATERPIN, OUTPUT)
   
   // Open serial communications and wait for port to open:
   Serial.begin(9600);
+  
+  displayStatus(POWERON);
+  
+  //Set up the heater
+  pinMode(HEATERPIN, OUTPUT);
+  
   pinMode(10, OUTPUT);
   digitalWrite(10,HIGH);
   int sdStatus = SDFAILURE;
   //Try 10 times to init sd card
-  for(int i = 0; i<10; i++)
+  for(int i = 0; i<3; i++)
     if(sd.begin(10, SPI_HALF_SPEED)){
       sdStatus = DONESUCCESS;
       break;
@@ -135,9 +137,11 @@ void setup()
   // set the data rate for the SoftwareSerial port
   mySerial.begin(9600);
   
+  
   //Configue the pressure sensor
   Wire.begin();
-  Serial.println("Calibrating Pressure Sensor");
+  Serial.println("readingtemp");
+  Serial.println(readTemp());
   sensor.reset();
   sensor.begin();  
   pressure_baseline = sensor.getPressure(ADC_4096);
@@ -153,7 +157,6 @@ void loop() // run over and over
     mySerial.read();
     DataFile.close();  
   } 
-  
   //Gather all sensor data and print it
   SensorFile.open(sensorFileName,O_RDWR | O_CREAT | O_AT_END);
   SensorFile.print(millis());
@@ -183,10 +186,14 @@ void loop() // run over and over
 
 float readTemp(){
   Wire.beginTransmission(tempAddress);
+  Serial.println("what");
   Wire.write(tempRegister);
+  Serial.println("what");
   Wire.endTransmission();
+  Serial.println("what");
   Wire.requestFrom(tempAddress, 2);
-  while(!Wire.available());
+  Serial.println("what");
+  //while(!Wire.available());
   msb = Wire.read();
   lsb = Wire.read();
   int temp = msb<<8 | lsb;  
@@ -208,6 +215,7 @@ void displayStatus(int toDisp){
       digitalWrite(GREENPIN, LOW);
       digitalWrite(BLUEPIN, HIGH);
       Serial.println("-------------------------POWER ON--------------------------");
+      delay(1000);
       break;
     case SDFAILURE:
       digitalWrite(REDPIN, HIGH);
