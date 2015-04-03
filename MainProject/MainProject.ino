@@ -113,7 +113,6 @@ void setup()
       sdStatus = DONESUCCESS;
       break;
     }
-  displayStatus(sdStatus);
   
   //Initialize files
   int i = 0;
@@ -140,12 +139,12 @@ void setup()
   
   //Configue the pressure sensor
   Wire.begin();
-  Serial.println("readingtemp");
-  Serial.println(readTemp());
   sensor.reset();
   sensor.begin();  
   pressure_baseline = sensor.getPressure(ADC_4096);
   
+  
+  displayStatus(sdStatus);
 }
 
 void loop() // run over and over
@@ -186,14 +185,10 @@ void loop() // run over and over
 
 float readTemp(){
   Wire.beginTransmission(tempAddress);
-  Serial.println("what");
   Wire.write(tempRegister);
-  Serial.println("what");
   Wire.endTransmission();
-  Serial.println("what");
   Wire.requestFrom(tempAddress, 2);
-  Serial.println("what");
-  //while(!Wire.available());
+  while(!Wire.available());
   msb = Wire.read();
   lsb = Wire.read();
   int temp = msb<<8 | lsb;  
